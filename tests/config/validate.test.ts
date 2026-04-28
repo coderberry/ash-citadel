@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameConfig } from "../../src/config/types";
 import { validateGameConfig } from "../../src/config/validate";
+import { ashCitadelConfig } from "../../src/games/ash-citadel/config";
 
 const validConfig: GameConfig = {
   game: {
@@ -93,5 +94,11 @@ describe("validateGameConfig", () => {
     };
 
     expect(validateGameConfig(config)).toContain("Zone block-01 cluster references missing enemy: ghost");
+  });
+});
+
+describe("ashCitadelConfig", () => {
+  it("ships with no validation errors", () => {
+    expect(validateGameConfig(ashCitadelConfig)).toEqual([]);
   });
 });
