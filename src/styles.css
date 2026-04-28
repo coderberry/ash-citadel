@@ -250,3 +250,20 @@ p {
   background: rgba(0, 0, 0, 0.22);
   text-align: center;
 }
+
+.pixi-host,
+.pixi-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.pixi-host {
+  touch-action: manipulation;
+}
+
+.pixi-canvas {
+  display: block;
+  image-rendering: pixelated;
+}

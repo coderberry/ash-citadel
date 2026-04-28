@@ -4,6 +4,7 @@ import { ResourceStrip } from "./components/ResourceStrip";
 import { SettingsSheet } from "./components/SettingsSheet";
 import { UpgradeSheet } from "./components/UpgradeSheet";
 import { ZoneCompleteDialog } from "./components/ZoneCompleteDialog";
+import { PixiStage } from "./render/PixiStage";
 
 export function App() {
   const controller = useGameController();
@@ -11,7 +12,7 @@ export function App() {
   return (
     <main className="app-shell">
       <section className="map-layer" aria-label="Ash Citadel map">
-        <div className="map-fallback">Tap the district to deploy the selected unit.</div>
+        <PixiStage config={controller.config} state={controller.state} onDeploy={controller.deploy} />
       </section>
       <ResourceStrip config={controller.config} state={controller.state} />
       <DeployBar
