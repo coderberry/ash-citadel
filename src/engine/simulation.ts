@@ -11,15 +11,25 @@ function distance(a: Point, b: Point): number {
 
 function statMultiplier(config: GameConfig, state: GameState, target: string): number {
   return config.upgrades
-    .filter((upgrade) => upgrade.effect.type === "statMultiplier")
-    .filter((upgrade) => upgrade.effect.target === target || upgrade.effect.target === target.replace(/unit:[^:]+:/, "unit:*:"))
-    .reduce((multiplier, upgrade) => multiplier * evaluateFormula(upgrade.effect.value, getUpgradeRank(state, upgrade.id)), 1);
+    .reduce((multiplier, upgrade) => {
+      if (upgrade.effect.type !== "statMultiplier") {
+        return multiplier;
+      }
+      if (upgrade.effect.target !== target && upgrade.effect.target !== target.replace(/unit:[^:]+:/, "unit:*:")) {
+        return multiplier;
+      }
+      return multiplier * evaluateFormula(upgrade.effect.value, getUpgradeRank(state, upgrade.id));
+    }, 1);
 }
 
 function rewardMultiplier(config: GameConfig, state: GameState, resourceId: string): number {
   return config.upgrades
-    .filter((upgrade) => upgrade.effect.type === "statMultiplier" && upgrade.effect.target === `reward:${resourceId}`)
-    .reduce((multiplier, upgrade) => multiplier * evaluateFormula(upgrade.effect.value, getUpgradeRank(state, upgrade.id)), 1);
+    .reduce((multiplier, upgrade) => {
+      if (upgrade.effect.type !== "statMultiplier" || upgrade.effect.target !== `reward:${resourceId}`) {
+        return multiplier;
+      }
+      return multiplier * evaluateFormula(upgrade.effect.value, getUpgradeRank(state, upgrade.id));
+    }, 1);
 }
 
 function makeUnitEntity(config: GameConfig, state: GameState, unit: UnitConfig, point: Point): EntityState {

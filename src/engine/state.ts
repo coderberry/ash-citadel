@@ -74,8 +74,12 @@ export function tickResources(config: GameConfig, state: GameState, deltaSeconds
     if (!resource.passiveRate) continue;
 
     const rateMultiplier = config.upgrades
-      .filter((upgrade) => upgrade.effect.type === "resourcePassiveRate" && upgrade.effect.resourceId === resource.id)
-      .reduce((multiplier, upgrade) => multiplier * evaluateFormula(upgrade.effect.value, getUpgradeRank(next, upgrade.id)), 1);
+      .reduce((multiplier, upgrade) => {
+        if (upgrade.effect.type !== "resourcePassiveRate" || upgrade.effect.resourceId !== resource.id) {
+          return multiplier;
+        }
+        return multiplier * evaluateFormula(upgrade.effect.value, getUpgradeRank(next, upgrade.id));
+      }, 1);
 
     const gained = evaluateFormula(resource.passiveRate) * rateMultiplier * deltaSeconds;
     const cap = getResourceCap(config, resource.id);
