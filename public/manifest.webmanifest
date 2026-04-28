@@ -1,0 +1,19 @@
+{
+  "name": "Ash Citadel",
+  "short_name": "Ash Citadel",
+  "description": "A mobile idle-combat game about reclaiming a ruined city block.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#181512",
+  "theme_color": "#181512",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
