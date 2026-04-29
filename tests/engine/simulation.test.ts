@@ -1,8 +1,43 @@
 import { describe, expect, it } from "vitest";
 import { ashCitadelConfig } from "../../src/games/ash-citadel/config";
 import { createInitialGameState, tickResources } from "../../src/engine/state";
-import { canAffordUpgrade, purchaseUpgrade } from "../../src/engine/upgrades";
+import { canAffordCost, canAffordUpgrade, getUpgradeCost, purchaseUpgrade } from "../../src/engine/upgrades";
 import { deployUnit, resetZone, tickCombat } from "../../src/engine/simulation";
+
+function runMilitiaPush(state = resetZone(ashCitadelConfig, createInitialGameState(ashCitadelConfig))) {
+  const militia = ashCitadelConfig.units.find((unit) => unit.id === "militia-squad");
+  const zone = ashCitadelConfig.zones[0];
+  if (!militia) throw new Error("Militia Squad config is required for balance tests.");
+
+  for (let tick = 0; tick < 240 && state.runStatus === "active"; tick += 1) {
+    if (canAffordCost(state, militia.cost)) {
+      state = deployUnit(ashCitadelConfig, state, "militia-squad", { x: zone.base.x + 48, y: zone.base.y });
+    }
+
+    state = tickResources(ashCitadelConfig, state, 0.5);
+    state = tickCombat(ashCitadelConfig, state, 0.5);
+  }
+
+  return state;
+}
+
+function buyEarlyUpgrades(state: ReturnType<typeof createInitialGameState>) {
+  const priority = ["trained-militia", "reinforced-kit", "generator-overdrive", "ration-vault"];
+  let next = state;
+  let purchased = true;
+
+  while (purchased) {
+    purchased = false;
+    for (const upgradeId of priority) {
+      if (canAffordUpgrade(ashCitadelConfig, next, upgradeId)) {
+        next = purchaseUpgrade(ashCitadelConfig, next, upgradeId);
+        purchased = true;
+      }
+    }
+  }
+
+  return next;
+}
 
 describe("engine resources and upgrades", () => {
   it("creates initial state from config resources and zone", () => {
@@ -25,11 +60,14 @@ describe("engine resources and upgrades", () => {
   it("buys an affordable upgrade and deducts cost", () => {
     const state = createInitialGameState(ashCitadelConfig);
     state.resources.scrap = 20;
+    const upgrade = ashCitadelConfig.upgrades.find((item) => item.id === "trained-militia");
+    if (!upgrade) throw new Error("trained-militia upgrade must exist.");
+    const cost = getUpgradeCost(upgrade, 0);
 
     expect(canAffordUpgrade(ashCitadelConfig, state, "trained-militia")).toBe(true);
     const next = purchaseUpgrade(ashCitadelConfig, state, "trained-militia");
 
-    expect(next.resources.scrap).toBe(10);
+    expect(next.resources.scrap).toBe(20 - cost.scrap);
     expect(next.upgradeRanks["trained-militia"]).toBe(1);
   });
 
@@ -47,7 +85,7 @@ describe("engine resources and upgrades", () => {
 
     const next = purchaseUpgrade(ashCitadelConfig, state, "ration-vault");
 
-    expect(next.resources.rations).toBe(5);
+    expect(next.resources.rations).toBe(ashCitadelConfig.resources.find((resource) => resource.id === "rations")?.startingValue + 1);
     expect(next.upgradeRanks["ration-vault"]).toBe(1);
   });
 });
@@ -79,16 +117,32 @@ describe("combat simulation", () => {
   it("spawns enemies for the current zone", () => {
     const state = resetZone(ashCitadelConfig, createInitialGameState(ashCitadelConfig));
 
-    expect(state.entities.filter((entity) => entity.side === "enemy")).toHaveLength(11);
+    expect(state.entities.filter((entity) => entity.side === "enemy")).toHaveLength(7);
+  });
+
+  it("uses forgiving first-run costs for the mobile opening loop", () => {
+    const militia = ashCitadelConfig.units.find((unit) => unit.id === "militia-squad");
+    const rations = ashCitadelConfig.resources.find((resource) => resource.id === "rations");
+    const trainedMilitia = ashCitadelConfig.upgrades.find((upgrade) => upgrade.id === "trained-militia");
+
+    if (!militia || !rations || !trainedMilitia) throw new Error("Opening loop config is incomplete.");
+
+    expect(militia.cost.power).toBeLessThanOrEqual(6);
+    expect(militia.cost.rations).toBe(1);
+    expect(rations.startingValue).toBeGreaterThanOrEqual(5);
+    expect(getUpgradeCost(trainedMilitia, 0).scrap).toBeLessThanOrEqual(8);
   });
 
   it("deploys a unit when resources are available", () => {
     const state = resetZone(ashCitadelConfig, createInitialGameState(ashCitadelConfig));
+    const militia = ashCitadelConfig.units.find((unit) => unit.id === "militia-squad");
+    if (!militia) throw new Error("Militia Squad config is required.");
+
     const next = deployUnit(ashCitadelConfig, state, "militia-squad", { x: 180, y: 340 });
 
     expect(next.entities.some((entity) => entity.configId === "militia-squad" && entity.side === "unit")).toBe(true);
-    expect(next.resources.power).toBe(12);
-    expect(next.resources.rations).toBe(3);
+    expect(next.resources.power).toBe(state.resources.power - militia.cost.power);
+    expect(next.resources.rations).toBe(state.resources.rations - militia.cost.rations);
   });
 
   it("clears the zone and awards enemy resources", () => {
@@ -135,6 +189,27 @@ describe("combat simulation", () => {
     expect(next.resources.power).toBe(ashCitadelConfig.resources.find((resource) => resource.id === "power")?.startingValue);
     expect(next.resources.rations).toBe(ashCitadelConfig.resources.find((resource) => resource.id === "rations")?.startingValue);
     expect(next.runStats.earned.scrap ?? 0).toBe(0);
-    expect(next.entities.filter((entity) => entity.side === "enemy")).toHaveLength(11);
+    expect(next.entities.filter((entity) => entity.side === "enemy")).toHaveLength(7);
+  });
+
+  it("fresh militia push reaches an outcome and earns scrap", () => {
+    const state = runMilitiaPush();
+
+    expect(["failed", "cleared"]).toContain(state.runStatus);
+    expect(state.runStats.defeatedEnemies).toBeGreaterThan(0);
+    expect(state.runStats.earned.scrap ?? 0).toBeGreaterThanOrEqual(8);
+    expect(state.resources.scrap).toBeGreaterThanOrEqual(8);
+  });
+
+  it("Block 01 clears by the third push after buying early upgrades", () => {
+    let state = createInitialGameState(ashCitadelConfig);
+
+    for (let run = 0; run < 3 && state.runStatus !== "cleared"; run += 1) {
+      state = runMilitiaPush(resetZone(ashCitadelConfig, state));
+      state = buyEarlyUpgrades(state);
+    }
+
+    expect(state.runStatus).toBe("cleared");
+    expect(state.completedZoneIds).toContain("block-01-broken-market");
   });
 });
