@@ -1,6 +1,6 @@
 import type { EnemyConfig, GameConfig, UnitConfig } from "../config/types";
 import { evaluateFormula } from "../config/formulas";
-import { canAffordCost } from "./upgrades";
+import { canAffordCost, isUnlockSatisfied } from "./upgrades";
 import { cloneState, createRunStats, getRunResourceStartingValue, getUpgradeRank, type EntityState, type GameState } from "./state";
 
 type Point = { x: number; y: number };
@@ -90,6 +90,24 @@ export function resetZone(config: GameConfig, state: GameState): GameState {
   }
 
   return next;
+}
+
+export function getUnlockedZones(config: GameConfig, state: GameState) {
+  return config.zones.filter((zone) => isUnlockSatisfied(state, zone.unlock));
+}
+
+export function getNextUnlockedZone(config: GameConfig, state: GameState) {
+  const currentIndex = config.zones.findIndex((zone) => zone.id === state.currentZoneId);
+  if (currentIndex < 0) return undefined;
+
+  return config.zones.slice(currentIndex + 1).find((zone) => isUnlockSatisfied(state, zone.unlock));
+}
+
+export function selectZone(config: GameConfig, state: GameState, zoneId: string): GameState {
+  const zone = config.zones.find((item) => item.id === zoneId);
+  if (!zone || !isUnlockSatisfied(state, zone.unlock)) return state;
+
+  return resetZone(config, { ...state, currentZoneId: zoneId });
 }
 
 export function deployUnit(config: GameConfig, state: GameState, unitId: string, point: Point): GameState {

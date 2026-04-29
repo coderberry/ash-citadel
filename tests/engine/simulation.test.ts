@@ -2,7 +2,23 @@ import { describe, expect, it } from "vitest";
 import { ashCitadelConfig } from "../../src/games/ash-citadel/config";
 import { createInitialGameState, tickResources } from "../../src/engine/state";
 import { canAffordCost, canAffordUpgrade, getUpgradeCost, purchaseUpgrade } from "../../src/engine/upgrades";
-import { deployUnit, resetZone, tickCombat } from "../../src/engine/simulation";
+import { deployUnit, getNextUnlockedZone, getUnlockedZones, resetZone, selectZone, tickCombat } from "../../src/engine/simulation";
+
+const progressionConfig = {
+  ...ashCitadelConfig,
+  zones: [
+    ashCitadelConfig.zones[0],
+    {
+      id: "test-locked-district",
+      name: "Test Locked District",
+      size: { width: 920, height: 680 },
+      base: { x: 110, y: 340 },
+      enemyClusters: [{ enemyId: "raider", count: 1, x: 520, y: 340, radius: 20 }],
+      unlock: { type: "zoneCompleted", zoneId: ashCitadelConfig.zones[0].id },
+      completion: { type: "allEnemiesDefeated" },
+    },
+  ],
+} satisfies typeof ashCitadelConfig;
 
 function runMilitiaPush(state = resetZone(ashCitadelConfig, createInitialGameState(ashCitadelConfig))) {
   const militia = ashCitadelConfig.units.find((unit) => unit.id === "militia-squad");
@@ -93,6 +109,48 @@ describe("engine resources and upgrades", () => {
 });
 
 describe("combat simulation", () => {
+  it("only includes zones whose unlock conditions are satisfied", () => {
+    const state = createInitialGameState(progressionConfig);
+
+    expect(getUnlockedZones(progressionConfig, state).map((zone) => zone.id)).toEqual(["block-01-broken-market"]);
+
+    state.completedZoneIds.push("block-01-broken-market");
+
+    expect(getUnlockedZones(progressionConfig, state).map((zone) => zone.id)).toEqual([
+      "block-01-broken-market",
+      "test-locked-district",
+    ]);
+  });
+
+  it("does not select a locked zone", () => {
+    const state = resetZone(progressionConfig, createInitialGameState(progressionConfig));
+    const next = selectZone(progressionConfig, state, "test-locked-district");
+
+    expect(next.currentZoneId).toBe("block-01-broken-market");
+    expect(next.entities.filter((entity) => entity.side === "enemy")).toHaveLength(7);
+  });
+
+  it("selects and resets an unlocked zone", () => {
+    const state = resetZone(progressionConfig, createInitialGameState(progressionConfig));
+    state.completedZoneIds.push("block-01-broken-market");
+
+    const next = selectZone(progressionConfig, state, "test-locked-district");
+
+    expect(next.currentZoneId).toBe("test-locked-district");
+    expect(next.runStatus).toBe("active");
+    expect(next.entities.filter((entity) => entity.side === "enemy")).toHaveLength(1);
+  });
+
+  it("finds the next unlocked zone after the current district", () => {
+    const state = createInitialGameState(progressionConfig);
+
+    expect(getNextUnlockedZone(progressionConfig, state)?.id).toBeUndefined();
+
+    state.completedZoneIds.push("block-01-broken-market");
+
+    expect(getNextUnlockedZone(progressionConfig, state)?.id).toBe("test-locked-district");
+  });
+
   it("resets run resources while preserving persistent rewards", () => {
     const state = createInitialGameState(ashCitadelConfig);
     const power = ashCitadelConfig.resources.find((resource) => resource.id === "power");
