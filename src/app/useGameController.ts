@@ -6,9 +6,18 @@ import { purchaseUpgrade } from "../engine/upgrades";
 import { exportSave, importSave, loadGameState, saveGameState } from "../persistence/save";
 import { ashCitadelConfig } from "../games/ash-citadel/config";
 
+function loadControllerState() {
+  const loaded = loadGameState(ashCitadelConfig);
+  if (!loaded.runStatus || (loaded.runStatus === "active" && loaded.entities.length === 0)) {
+    return resetZone(ashCitadelConfig, loaded);
+  }
+
+  return loaded;
+}
+
 export function useGameController() {
   const config = ashCitadelConfig;
-  const [state, setState] = useState<GameState>(() => resetZone(config, loadGameState(config)));
+  const [state, setState] = useState<GameState>(loadControllerState);
   const stateRef = useRef(state);
   const [selectedUnitId, setSelectedUnitId] = useState("militia-squad");
   const [sheet, setSheet] = useState<"upgrades" | "settings" | null>(null);

@@ -1,9 +1,10 @@
 import { useGameController } from "./app/useGameController";
 import { DeployBar } from "./components/DeployBar";
 import { ResourceStrip } from "./components/ResourceStrip";
+import { RunOutcomeDialog } from "./components/RunOutcomeDialog";
+import { RunStatusPanel } from "./components/RunStatusPanel";
 import { SettingsSheet } from "./components/SettingsSheet";
 import { UpgradeSheet } from "./components/UpgradeSheet";
-import { ZoneCompleteDialog } from "./components/ZoneCompleteDialog";
 import { PixiStage } from "./render/PixiStage";
 
 export function App() {
@@ -15,6 +16,7 @@ export function App() {
         <PixiStage config={controller.config} state={controller.state} onDeploy={controller.deploy} />
       </section>
       <ResourceStrip config={controller.config} state={controller.state} />
+      <RunStatusPanel config={controller.config} state={controller.state} />
       <DeployBar
         units={controller.unlockedUnits}
         state={controller.state}
@@ -39,7 +41,12 @@ export function App() {
           onClose={() => controller.setSheet(null)}
         />
       )}
-      {controller.state.zoneCompleted && <ZoneCompleteDialog onRestart={controller.restartZone} />}
+      <RunOutcomeDialog
+        config={controller.config}
+        state={controller.state}
+        onOpenUpgrades={() => controller.setSheet("upgrades")}
+        onRestart={controller.restartZone}
+      />
     </main>
   );
 }

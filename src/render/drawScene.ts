@@ -14,6 +14,7 @@ export function drawScene(stage: Container, config: GameConfig, state: GameState
   stage.addChild(background);
 
   const base = new Graphics();
+  base.circle(zone.base.x, zone.base.y, 88).fill({ color: 0xfbbf24, alpha: 0.08 }).stroke({ color: 0xfbbf24, width: 2, alpha: 0.38 });
   base.circle(zone.base.x, zone.base.y, 44).fill(0x92400e).stroke({ color: 0xfbbf24, width: 4 });
   stage.addChild(base);
 

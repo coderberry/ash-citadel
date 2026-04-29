@@ -81,11 +81,13 @@ describe("engine resources and upgrades", () => {
 
   it("applies ration vault as an immediate ration increase", () => {
     const state = createInitialGameState(ashCitadelConfig);
+    const rations = ashCitadelConfig.resources.find((resource) => resource.id === "rations");
+    if (!rations) throw new Error("rations resource must exist.");
     state.resources.scrap = 40;
 
     const next = purchaseUpgrade(ashCitadelConfig, state, "ration-vault");
 
-    expect(next.resources.rations).toBe(ashCitadelConfig.resources.find((resource) => resource.id === "rations")?.startingValue + 1);
+    expect(next.resources.rations).toBe(rations.startingValue + 1);
     expect(next.upgradeRanks["ration-vault"]).toBe(1);
   });
 });

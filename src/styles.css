@@ -93,6 +93,35 @@ p {
   gap: 6px;
 }
 
+.run-status-panel {
+  position: absolute;
+  top: calc(max(8px, env(safe-area-inset-top)) + 58px);
+  left: 8px;
+  z-index: 3;
+  width: min(290px, calc(100vw - 16px));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: linear-gradient(120deg, rgba(24, 21, 18, 0.92), rgba(69, 26, 3, 0.78));
+  backdrop-filter: blur(10px);
+}
+
+.run-status-panel h1,
+.run-status-panel p {
+  margin: 0;
+}
+
+.run-status-panel h1 {
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.run-status-panel p:last-child {
+  margin-top: 4px;
+  color: #d6c7b3;
+  font-size: 0.82rem;
+}
+
 .resource-pill,
 .deploy-bar,
 .sheet,
@@ -129,6 +158,7 @@ p {
   z-index: 3;
   display: grid;
   grid-template-columns: 72px 1fr 72px;
+  grid-template-rows: auto auto;
   gap: 8px;
   border-radius: 8px;
   padding: 8px;
@@ -157,6 +187,10 @@ p {
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
+.unit-button:disabled {
+  color: rgba(246, 239, 228, 0.48);
+}
+
 .unit-button span,
 .unit-button small {
   display: block;
@@ -165,6 +199,13 @@ p {
 .unit-button small {
   color: #d6c7b3;
   font-size: 0.68rem;
+}
+
+.deploy-hint {
+  grid-column: 1 / -1;
+  margin: -2px 2px 0;
+  color: #fbbf24;
+  font-size: 0.75rem;
 }
 
 .sheet {
@@ -196,6 +237,12 @@ p {
   transform: translate(-50%, -50%);
   border-radius: 8px;
   padding: 16px;
+}
+
+.dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .upgrade-list,
