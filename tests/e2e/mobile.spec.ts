@@ -38,6 +38,8 @@ test("mobile layout renders core controls and nonblank canvas", async ({ page })
 
   await expect(page.getByText("Power", { exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Run status" })).toContainText("Break the Broken Market");
+  await expect(page.getByRole("navigation", { name: "Districts" })).toContainText("Broken Market");
+  await expect(page.getByRole("button", { name: /Transit Spine Locked/i })).toBeDisabled();
   await expect(page.getByRole("navigation", { name: "Deployment controls" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Militia Squad/i })).toBeVisible();
   await expect(page.getByRole("status", { name: "Deployment hint" })).toContainText("Tap district");
@@ -51,6 +53,30 @@ test("mobile layout renders core controls and nonblank canvas", async ({ page })
 
   await page.mouse.click((box?.x ?? 0) + (box?.width ?? 0) / 2, (box?.y ?? 0) + (box?.height ?? 0) / 2);
   await expect(page.getByText("Power", { exact: true })).toBeVisible();
+});
+
+test("cleared district can advance to the next unlocked district", async ({ page }) => {
+  await page.addInitScript(
+    ({ key, state }) => localStorage.setItem(key, JSON.stringify(state)),
+    {
+      key: saveKey,
+      state: makeSavedState({
+        completedZoneIds: ["block-01-broken-market"],
+        entities: [],
+        zoneCompleted: true,
+        runStatus: "cleared",
+        runStats: { defeatedEnemies: 7, earned: { scrap: 42, intel: 1 } },
+      }),
+    },
+  );
+
+  await page.goto("/");
+
+  await expect(page.getByRole("dialog", { name: "District cleared" })).toContainText("42 scrap recovered");
+  await page.getByRole("button", { name: "Advance to Transit Spine" }).click();
+  await expect(page.getByRole("region", { name: "Run status" })).toContainText("Break the Transit Spine");
+  await expect(page.getByRole("navigation", { name: "Districts" })).toContainText("Transit Spine");
+  await expect(page.getByRole("button", { name: /Signal Yard Locked/i })).toBeDisabled();
 });
 
 test("deployment controls explain why a selected crew is unaffordable", async ({ page }) => {

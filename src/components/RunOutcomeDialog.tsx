@@ -4,11 +4,15 @@ import type { GameState } from "../engine/state";
 export function RunOutcomeDialog({
   config,
   state,
+  nextZoneName,
+  onAdvance,
   onOpenUpgrades,
   onRestart,
 }: {
   config: GameConfig;
   state: GameState;
+  nextZoneName?: string;
+  onAdvance: () => void;
   onOpenUpgrades: () => void;
   onRestart: () => void;
 }) {
@@ -24,6 +28,11 @@ export function RunOutcomeDialog({
       <h2>{cleared ? `${zone.name.replace(/^Block \\d+: /, "")} Cleared` : "Push Failed"}</h2>
       <p>{scrapEarned} scrap recovered from this push.</p>
       <div className="dialog-actions">
+        {cleared && nextZoneName && (
+          <button type="button" onClick={onAdvance}>
+            {`Advance to ${nextZoneName.replace(/^Block \d+: /, "")}`}
+          </button>
+        )}
         <button type="button" onClick={onRestart}>
           {cleared ? "Run Block Again" : "Retry Push"}
         </button>

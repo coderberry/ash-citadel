@@ -1,5 +1,6 @@
 import { useGameController } from "./app/useGameController";
 import { DeployBar } from "./components/DeployBar";
+import { DistrictStrip } from "./components/DistrictStrip";
 import { ResourceStrip } from "./components/ResourceStrip";
 import { RunOutcomeDialog } from "./components/RunOutcomeDialog";
 import { RunStatusPanel } from "./components/RunStatusPanel";
@@ -17,6 +18,13 @@ export function App() {
       </section>
       <ResourceStrip config={controller.config} state={controller.state} />
       <RunStatusPanel config={controller.config} state={controller.state} />
+      <DistrictStrip
+        currentZoneId={controller.state.currentZoneId}
+        zones={controller.config.zones}
+        unlockedZoneIds={controller.unlockedZones.map((zone) => zone.id)}
+        completedZoneIds={controller.state.completedZoneIds}
+        onSelect={controller.chooseZone}
+      />
       <DeployBar
         units={controller.unlockedUnits}
         state={controller.state}
@@ -44,6 +52,8 @@ export function App() {
       <RunOutcomeDialog
         config={controller.config}
         state={controller.state}
+        nextZoneName={controller.nextZone?.name}
+        onAdvance={controller.advanceZone}
         onOpenUpgrades={() => controller.setSheet("upgrades")}
         onRestart={controller.restartZone}
       />

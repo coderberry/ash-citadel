@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { UnitConfig } from "../config/types";
 import { tickResources, type GameState } from "../engine/state";
-import { deployUnit, resetZone, tickCombat } from "../engine/simulation";
+import { deployUnit, getNextUnlockedZone, getUnlockedZones, resetZone, selectZone, tickCombat } from "../engine/simulation";
 import { purchaseUpgrade } from "../engine/upgrades";
 import { exportSave, importSave, loadGameState, saveGameState } from "../persistence/save";
 import { ashCitadelConfig } from "../games/ash-citadel/config";
@@ -51,6 +51,8 @@ export function useGameController() {
     () => config.units.filter((unit) => state.unlockedUnitIds.includes(unit.id)),
     [config.units, state.unlockedUnitIds],
   );
+  const unlockedZones = useMemo(() => getUnlockedZones(config, state), [config, state]);
+  const nextZone = useMemo(() => getNextUnlockedZone(config, state), [config, state]);
 
   function deploy(point: { x: number; y: number }) {
     setState((current) => deployUnit(config, current, selectedUnitId, point));
@@ -62,6 +64,17 @@ export function useGameController() {
 
   function restartZone() {
     setState((current) => resetZone(config, { ...current, zoneCompleted: false }));
+  }
+
+  function chooseZone(zoneId: string) {
+    setState((current) => selectZone(config, current, zoneId));
+  }
+
+  function advanceZone() {
+    setState((current) => {
+      const next = getNextUnlockedZone(config, current);
+      return next ? selectZone(config, current, next.id) : current;
+    });
   }
 
   function exportCurrentSave(): string {
@@ -89,9 +102,13 @@ export function useGameController() {
     setSheet,
     importError,
     unlockedUnits: unlockedUnits as UnitConfig[],
+    unlockedZones,
+    nextZone,
     deploy,
     buyUpgrade,
     restartZone,
+    chooseZone,
+    advanceZone,
     exportCurrentSave,
     importEncodedSave,
   };
