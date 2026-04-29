@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameConfig } from "../../src/config/types";
 import { validateGameConfig } from "../../src/config/validate";
-import { ashCitadelConfig } from "../../src/games/ash-citadel/config";
+import { gameConfigs } from "../../src/games/registry";
 
 const validConfig: GameConfig = {
   game: {
@@ -97,8 +97,10 @@ describe("validateGameConfig", () => {
   });
 });
 
-describe("ashCitadelConfig", () => {
-  it("ships with no validation errors", () => {
-    expect(validateGameConfig(ashCitadelConfig)).toEqual([]);
+describe("shipped game configs", () => {
+  it("ship with no validation errors", () => {
+    for (const config of gameConfigs) {
+      expect(validateGameConfig(config)).toEqual([]);
+    }
   });
 });
