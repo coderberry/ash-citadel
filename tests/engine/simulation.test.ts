@@ -193,6 +193,42 @@ describe("combat simulation", () => {
     expect(getUpgradeCost(trainedMilitia, 0).scrap).toBeLessThanOrEqual(8);
   });
 
+  it("defines a three-district Ash Citadel progression chain", () => {
+    expect(ashCitadelConfig.zones.map((zone) => zone.id)).toEqual([
+      "block-01-broken-market",
+      "block-02-transit-spine",
+      "block-03-signal-yard",
+    ]);
+
+    expect(ashCitadelConfig.zones[0].unlock).toEqual({ type: "always" });
+    expect(ashCitadelConfig.zones[1].unlock).toEqual({ type: "zoneCompleted", zoneId: "block-01-broken-market" });
+    expect(ashCitadelConfig.zones[2].unlock).toEqual({ type: "zoneCompleted", zoneId: "block-02-transit-spine" });
+  });
+
+  it("unlocks Ash Citadel districts as previous districts are cleared", () => {
+    const state = createInitialGameState(ashCitadelConfig);
+
+    expect(getUnlockedZones(ashCitadelConfig, state).map((zone) => zone.id)).toEqual(["block-01-broken-market"]);
+
+    state.completedZoneIds.push("block-01-broken-market");
+
+    expect(getUnlockedZones(ashCitadelConfig, state).map((zone) => zone.id)).toEqual([
+      "block-01-broken-market",
+      "block-02-transit-spine",
+    ]);
+    expect(getNextUnlockedZone(ashCitadelConfig, state)?.id).toBe("block-02-transit-spine");
+
+    state.currentZoneId = "block-02-transit-spine";
+    state.completedZoneIds.push("block-02-transit-spine");
+
+    expect(getUnlockedZones(ashCitadelConfig, state).map((zone) => zone.id)).toEqual([
+      "block-01-broken-market",
+      "block-02-transit-spine",
+      "block-03-signal-yard",
+    ]);
+    expect(getNextUnlockedZone(ashCitadelConfig, state)?.id).toBe("block-03-signal-yard");
+  });
+
   it("deploys a unit when resources are available", () => {
     const state = resetZone(ashCitadelConfig, createInitialGameState(ashCitadelConfig));
     const militia = ashCitadelConfig.units.find((unit) => unit.id === "militia-squad");

@@ -109,6 +109,32 @@ export const ashCitadelConfig: GameConfig = {
       unlock: { type: "always" },
       completion: { type: "allEnemiesDefeated" },
     },
+    {
+      id: "block-02-transit-spine",
+      name: "Block 02: Transit Spine",
+      size: { width: 980, height: 720 },
+      base: { x: 100, y: 360 },
+      enemyClusters: [
+        { enemyId: "raider", count: 5, x: 510, y: 210, radius: 90 },
+        { enemyId: "mutant", count: 3, x: 690, y: 400, radius: 90 },
+        { enemyId: "auto-turret", count: 2, x: 840, y: 300, radius: 70 },
+      ],
+      unlock: { type: "zoneCompleted", zoneId: "block-01-broken-market" },
+      completion: { type: "allEnemiesDefeated" },
+    },
+    {
+      id: "block-03-signal-yard",
+      name: "Block 03: Signal Yard",
+      size: { width: 1040, height: 760 },
+      base: { x: 120, y: 380 },
+      enemyClusters: [
+        { enemyId: "raider", count: 6, x: 530, y: 220, radius: 100 },
+        { enemyId: "mutant", count: 4, x: 700, y: 500, radius: 100 },
+        { enemyId: "auto-turret", count: 3, x: 900, y: 350, radius: 85 },
+      ],
+      unlock: { type: "zoneCompleted", zoneId: "block-02-transit-spine" },
+      completion: { type: "allEnemiesDefeated" },
+    },
   ],
   upgrades: [
     {
