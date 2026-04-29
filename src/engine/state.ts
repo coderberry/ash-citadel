@@ -1,6 +1,13 @@
 import type { GameConfig } from "../config/types";
 import { evaluateFormula } from "../config/formulas";
 
+export type RunStatus = "active" | "cleared" | "failed";
+
+export type RunStats = {
+  defeatedEnemies: number;
+  earned: Record<string, number>;
+};
+
 export type EntityState = {
   id: string;
   configId: string;
@@ -24,8 +31,38 @@ export type GameState = {
   entities: EntityState[];
   nextEntityId: number;
   zoneCompleted: boolean;
+  runStatus: RunStatus;
+  runStats: RunStats;
   lastSavedAt: number;
 };
+
+export function createRunStats(): RunStats {
+  return {
+    defeatedEnemies: 0,
+    earned: {},
+  };
+}
+
+export function getRunResourceStartingValue(config: GameConfig, state: GameState, resourceId: string): number {
+  const resource = config.resources.find((item) => item.id === resourceId);
+  if (!resource) return 0;
+
+  const bonus = config.upgrades.reduce((total, upgrade) => {
+    if (upgrade.effect.type !== "resourceStartingValue" || upgrade.effect.resourceId !== resourceId) {
+      return total;
+    }
+
+    const rank = getUpgradeRank(state, upgrade.id);
+    let gained = 0;
+    for (let index = 0; index < rank; index += 1) {
+      gained += evaluateFormula(upgrade.effect.value, index);
+    }
+    return total + gained;
+  }, 0);
+
+  const cap = getResourceCap(config, resourceId);
+  return Math.min(cap ?? Number.POSITIVE_INFINITY, resource.startingValue + bonus);
+}
 
 export function createInitialGameState(config: GameConfig): GameState {
   const resources = Object.fromEntries(config.resources.map((resource) => [resource.id, resource.startingValue]));
@@ -43,6 +80,8 @@ export function createInitialGameState(config: GameConfig): GameState {
     entities: [],
     nextEntityId: 1,
     zoneCompleted: false,
+    runStatus: "active",
+    runStats: createRunStats(),
     lastSavedAt: Date.now(),
   };
 }
@@ -56,6 +95,11 @@ export function cloneState(state: GameState): GameState {
     unlockedUnitIds: [...state.unlockedUnitIds],
     completedZoneIds: [...state.completedZoneIds],
     entities: state.entities.map((entity) => ({ ...entity })),
+    runStatus: state.runStatus ?? (state.zoneCompleted ? "cleared" : "active"),
+    runStats: {
+      defeatedEnemies: state.runStats?.defeatedEnemies ?? 0,
+      earned: { ...(state.runStats?.earned ?? {}) },
+    },
   };
 }
 

@@ -12,9 +12,17 @@ export const ashCitadelConfig: GameConfig = {
     },
   },
   resources: [
-    { id: "power", name: "Power", icon: "bolt", startingValue: 20, cap: 30, passiveRate: { type: "constant", value: 1.5 } },
+    {
+      id: "power",
+      name: "Power",
+      icon: "bolt",
+      startingValue: 20,
+      cap: 30,
+      passiveRate: { type: "constant", value: 1.5 },
+      resetOnRun: true,
+    },
     { id: "scrap", name: "Scrap", icon: "gear", startingValue: 0 },
-    { id: "rations", name: "Rations", icon: "crate", startingValue: 4, cap: 12 },
+    { id: "rations", name: "Rations", icon: "crate", startingValue: 4, cap: 12, resetOnRun: true },
     { id: "intel", name: "Intel", icon: "signal", startingValue: 0 },
   ],
   units: [

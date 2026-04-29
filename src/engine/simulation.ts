@@ -1,7 +1,7 @@
 import type { EnemyConfig, GameConfig, UnitConfig } from "../config/types";
 import { evaluateFormula } from "../config/formulas";
 import { canAffordCost } from "./upgrades";
-import { cloneState, getUpgradeRank, type EntityState, type GameState } from "./state";
+import { cloneState, createRunStats, getRunResourceStartingValue, getUpgradeRank, type EntityState, type GameState } from "./state";
 
 type Point = { x: number; y: number };
 
@@ -67,6 +67,14 @@ export function resetZone(config: GameConfig, state: GameState): GameState {
   const zone = config.zones.find((item) => item.id === next.currentZoneId) ?? config.zones[0];
   next.entities = [];
   next.zoneCompleted = false;
+  next.runStatus = "active";
+  next.runStats = createRunStats();
+
+  for (const resource of config.resources) {
+    if (resource.resetOnRun) {
+      next.resources[resource.id] = getRunResourceStartingValue(config, next, resource.id);
+    }
+  }
 
   for (const cluster of zone.enemyClusters) {
     const enemy = config.enemies.find((item) => item.id === cluster.enemyId);
@@ -86,7 +94,7 @@ export function resetZone(config: GameConfig, state: GameState): GameState {
 
 export function deployUnit(config: GameConfig, state: GameState, unitId: string, point: Point): GameState {
   const unit = config.units.find((item) => item.id === unitId);
-  if (!unit || !state.unlockedUnitIds.includes(unitId) || !canAffordCost(state, unit.cost)) return state;
+  if (!unit || state.runStatus !== "active" || !state.unlockedUnitIds.includes(unitId) || !canAffordCost(state, unit.cost)) return state;
 
   const next = cloneState(state);
   for (const [resourceId, amount] of Object.entries(unit.cost)) {
@@ -114,14 +122,36 @@ function applyRewards(config: GameConfig, state: GameState, enemyId: string): vo
   const enemy = config.enemies.find((item) => item.id === enemyId);
   if (!enemy) return;
 
+  state.runStats.defeatedEnemies += 1;
   for (const [resourceId, amount] of Object.entries(enemy.rewards)) {
     const gained = amount * rewardMultiplier(config, state, resourceId);
     state.resources[resourceId] = (state.resources[resourceId] ?? 0) + gained;
     state.totals[resourceId] = (state.totals[resourceId] ?? 0) + gained;
+    state.runStats.earned[resourceId] = (state.runStats.earned[resourceId] ?? 0) + gained;
   }
 }
 
+function canEverAffordUnit(config: GameConfig, state: GameState, unit: UnitConfig): boolean {
+  if (!state.unlockedUnitIds.includes(unit.id)) return false;
+
+  return Object.entries(unit.cost).every(([resourceId, amount]) => {
+    const current = state.resources[resourceId] ?? 0;
+    if (current >= amount) return true;
+
+    const resource = config.resources.find((item) => item.id === resourceId);
+    if (!resource?.passiveRate) return false;
+
+    return (resource.cap ?? Number.POSITIVE_INFINITY) >= amount;
+  });
+}
+
+function canEverDeployUnlockedUnit(config: GameConfig, state: GameState): boolean {
+  return config.units.some((unit) => canEverAffordUnit(config, state, unit));
+}
+
 export function tickCombat(config: GameConfig, state: GameState, deltaSeconds: number): GameState {
+  if (state.runStatus && state.runStatus !== "active") return state;
+
   const next = cloneState(state);
   const unitsById = new Map(config.units.map((unit) => [unit.id, unit]));
   const enemiesById = new Map(config.enemies.map((enemy) => [enemy.id, enemy]));
@@ -159,9 +189,19 @@ export function tickCombat(config: GameConfig, state: GameState, deltaSeconds: n
 
   if (!next.zoneCompleted && next.entities.every((entity) => entity.side !== "enemy")) {
     next.zoneCompleted = true;
+    next.runStatus = "cleared";
     if (!next.completedZoneIds.includes(next.currentZoneId)) {
       next.completedZoneIds.push(next.currentZoneId);
     }
+  }
+
+  if (
+    next.runStatus === "active" &&
+    next.entities.some((entity) => entity.side === "enemy") &&
+    next.entities.every((entity) => entity.side !== "unit") &&
+    !canEverDeployUnlockedUnit(config, next)
+  ) {
+    next.runStatus = "failed";
   }
 
   return next;

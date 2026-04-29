@@ -18,6 +18,7 @@ export type ResourceConfig = {
   startingValue: number;
   cap?: number;
   passiveRate?: Formula;
+  resetOnRun?: boolean;
 };
 
 export type UnitConfig = {
