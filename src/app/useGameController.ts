@@ -1,25 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { UnitConfig } from "../config/types";
+import type { GameConfig, UnitConfig } from "../config/types";
 import { tickResources, type GameState } from "../engine/state";
 import { deployUnit, getNextUnlockedZone, getUnlockedZones, resetZone, selectZone, tickCombat } from "../engine/simulation";
 import { purchaseUpgrade } from "../engine/upgrades";
 import { exportSave, importSave, loadGameState, saveGameState } from "../persistence/save";
-import { ashCitadelConfig } from "../games/ash-citadel/config";
+import { getGameConfigFromUrl } from "../games/registry";
 
-function loadControllerState() {
-  const loaded = loadGameState(ashCitadelConfig);
+function getDefaultUnitId(config: GameConfig): string {
+  return config.units.find((unit) => unit.unlock.type === "always")?.id ?? config.units[0]?.id ?? "";
+}
+
+function loadControllerState(config: GameConfig) {
+  const loaded = loadGameState(config);
   if (!loaded.runStatus || (loaded.runStatus === "active" && loaded.entities.length === 0)) {
-    return resetZone(ashCitadelConfig, loaded);
+    return resetZone(config, loaded);
   }
 
   return loaded;
 }
 
 export function useGameController() {
-  const config = ashCitadelConfig;
-  const [state, setState] = useState<GameState>(loadControllerState);
+  const config = useMemo(() => getGameConfigFromUrl(), []);
+  const defaultUnitId = useMemo(() => getDefaultUnitId(config), [config]);
+  const [state, setState] = useState<GameState>(() => loadControllerState(config));
   const stateRef = useRef(state);
-  const [selectedUnitId, setSelectedUnitId] = useState("militia-squad");
+  const [selectedUnitId, setSelectedUnitId] = useState(defaultUnitId);
   const [sheet, setSheet] = useState<"upgrades" | "settings" | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -53,6 +58,12 @@ export function useGameController() {
   );
   const unlockedZones = useMemo(() => getUnlockedZones(config, state), [config, state]);
   const nextZone = useMemo(() => getNextUnlockedZone(config, state), [config, state]);
+
+  useEffect(() => {
+    if (!unlockedUnits.some((unit) => unit.id === selectedUnitId)) {
+      setSelectedUnitId(unlockedUnits[0]?.id ?? defaultUnitId);
+    }
+  }, [defaultUnitId, selectedUnitId, unlockedUnits]);
 
   function deploy(point: { x: number; y: number }) {
     setState((current) => deployUnit(config, current, selectedUnitId, point));

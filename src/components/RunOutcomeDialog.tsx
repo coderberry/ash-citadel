@@ -1,3 +1,4 @@
+import { shortZoneName } from "../config/display";
 import type { GameConfig } from "../config/types";
 import type { GameState } from "../engine/state";
 
@@ -25,12 +26,12 @@ export function RunOutcomeDialog({
   return (
     <section className="zone-dialog" role="dialog" aria-label={cleared ? "District cleared" : "Push failed"}>
       <p className="eyebrow">{cleared ? "District Secured" : "Crews Lost"}</p>
-      <h2>{cleared ? `${zone.name.replace(/^Block \\d+: /, "")} Cleared` : "Push Failed"}</h2>
+      <h2>{cleared ? `${shortZoneName(zone.name)} Cleared` : "Push Failed"}</h2>
       <p>{scrapEarned} scrap recovered from this push.</p>
       <div className="dialog-actions">
         {cleared && nextZoneName && (
           <button type="button" onClick={onAdvance}>
-            {`Advance to ${nextZoneName.replace(/^Block \d+: /, "")}`}
+            {`Advance to ${shortZoneName(nextZoneName)}`}
           </button>
         )}
         <button type="button" onClick={onRestart}>

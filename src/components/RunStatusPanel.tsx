@@ -1,9 +1,10 @@
+import { shortZoneName } from "../config/display";
 import type { GameConfig } from "../config/types";
 import type { GameState } from "../engine/state";
 
 export function RunStatusPanel({ config, state }: { config: GameConfig; state: GameState }) {
   const zone = config.zones.find((item) => item.id === state.currentZoneId) ?? config.zones[0];
-  const zoneName = zone.name.replace(/^Block \d+: /, "");
+  const zoneName = shortZoneName(zone.name);
   const enemiesRemaining = state.entities.filter((entity) => entity.side === "enemy").length;
   const scrapEarned = Math.floor(state.runStats.earned.scrap ?? 0);
   const title =

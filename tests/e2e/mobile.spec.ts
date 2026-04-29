@@ -114,6 +114,16 @@ test("failed push can be retried from the outcome dialog", async ({ page }) => {
   await expect(page.getByRole("region", { name: "Run status" })).toContainText("7 hostiles remain");
 });
 
+test("launches a different game config from the URL", async ({ page }) => {
+  await page.goto("/?game=dust-harbor");
+
+  await expect(page.getByText("Charge", { exact: true })).toBeVisible();
+  await expect(page.getByText("Parts", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Harbor Crew/i })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Run status" })).toContainText("Break the Salt Market");
+  await expect(page.getByRole("button", { name: /Crane Row Locked/i })).toBeDisabled();
+});
+
 test("manifest is available", async ({ page }) => {
   const response = await page.goto("/manifest.webmanifest");
   expect(response?.ok()).toBe(true);

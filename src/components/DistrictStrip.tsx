@@ -1,8 +1,5 @@
+import { shortZoneName } from "../config/display";
 import type { ZoneConfig } from "../config/types";
-
-function shortName(zone: ZoneConfig): string {
-  return zone.name.replace(/^Block \d+: /, "");
-}
 
 export function DistrictStrip({
   currentZoneId,
@@ -23,7 +20,7 @@ export function DistrictStrip({
         const unlocked = unlockedZoneIds.includes(zone.id);
         const completed = completedZoneIds.includes(zone.id);
         const active = zone.id === currentZoneId;
-        const label = `${shortName(zone)} ${!unlocked ? "Locked" : completed ? "Cleared" : active ? "Current" : "Open"}`;
+        const label = `${shortZoneName(zone.name)} ${!unlocked ? "Locked" : completed ? "Cleared" : active ? "Current" : "Open"}`;
 
         return (
           <button
@@ -35,7 +32,7 @@ export function DistrictStrip({
             onClick={() => onSelect(zone.id)}
           >
             <span>{`0${index + 1}`}</span>
-            <strong>{shortName(zone)}</strong>
+            <strong>{shortZoneName(zone.name)}</strong>
             <small>{!unlocked ? "Locked" : completed ? "Cleared" : active ? "Current" : "Open"}</small>
           </button>
         );
